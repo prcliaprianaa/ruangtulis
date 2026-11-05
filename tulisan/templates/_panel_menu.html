@@ -1,0 +1,9 @@
+{# Menu samping panel admin, dipakai di panel_pengguna.html dan panel_kategori.html #}
+{% with nama_url=request.resolver_match.url_name %}
+<nav class="panel-menu">
+    <a href="{% url 'panel_pengguna' %}" class="{% if nama_url == 'panel_pengguna' %}aktif{% endif %}">Pengguna</a>
+    <a href="{% url 'panel_kategori' %}" class="{% if nama_url == 'panel_kategori' %}aktif{% endif %}">Kategori</a>
+    {# admin:index = halaman utama panel admin bawaan Django (/admin/) #}
+    <a href="{% url 'admin:index' %}">Panel Django</a>
+</nav>
+{% endwith %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load markdown_filter %}
+
+{% block title %}{{ tulisan.judul }} | RuangTulis{% endblock %}
+
+{% block content %}
+<article class="artikel">
+    <a href="{% url 'beranda' %}" class="kembali">&larr; Kembali ke beranda</a>
+
+    {# Peringatan kalau tulisan belum terbit (hanya pemilik dan moderator yang bisa sampai ke sini) #}
+    {% if tulisan.status != 'terbit' %}
+        <div class="pesan pesan-info">Pratinjau: tulisan ini berstatus <strong>{{ tulisan.get_status_display }}</strong> dan belum tampil di publik.</div>
+    {% endif %}
+
+    <header class="artikel-kepala">
+        <a href="{% url 'beranda' %}?kategori={{ tulisan.kategori.slug }}" class="kategori">{{ tulisan.kategori }}</a>
+        <h1>{{ tulisan.judul }}</h1>
+        <div class="meta">
+            <span>Oleh <strong>{{ tulisan.penulis }}</strong></span>
+            {% if tulisan.diterbitkan_pada %}<span>Terbit {{ tulisan.diterbitkan_pada|date:"j F Y" }}</span>{% endif %}
+            <span>{{ tulisan.isi|waktu_baca }} menit baca</span>
+        </div>
+    </header>
+
+    {# markdown_aman: mengubah Markdown jadi HTML yang sudah dibersihkan dari script berbahaya #}
+    <div class="artikel-isi">{{ tulisan.isi|markdown_aman }}</div>
+
+    {# Tombol suka dan salin tautan hanya untuk tulisan yang sudah terbit #}
+    {% if tulisan.status == 'terbit' %}
+    <footer class="artikel-aksi">
+        <form method="post" action="{% url 'suka' tulisan.slug %}">
+            {% csrf_token %}
+            {# Tombol berwarna penuh kalau sudah disukai, bergaris kalau belum #}
+            <button type="submit" class="btn {% if not sudah_suka %}btn-outline{% endif %}">
+                <svg class="ikon" viewBox="0 0 24 24" fill="{% if sudah_suka %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M12 20s-7-4.4-9.2-8.7C1.3 8.2 3 4.8 6.4 4.5c2-.2 3.7 1 4.6 2.6.9-1.6 2.6-2.8 4.6-2.6 3.4.3 5.1 3.7 3.6 6.8C19 15.6 12 20 12 20z"/></svg>
+                {% if sudah_suka %}Disukai{% else %}Suka{% endif %} ({{ jumlah_suka }})
+            </button>
+        </form>
+        {# data-url: alamat lengkap halaman ini, dipakai oleh JavaScript di bawah #}
+        <button type="button" class="btn btn-outline" id="salin-tautan" data-url="{{ request.build_absolute_uri }}">Salin tautan</button>
+        {% if not user.is_authenticated %}
+            <span class="redup kecil">Masuk untuk menyukai tulisan ini.</span>
+        {% endif %}
+    </footer>
+    {% endif %}
+</article>
+{% endblock %}
+
+{% block script %}
+<script>
+    // Menyalin alamat tulisan ke clipboard saat tombol "Salin tautan" ditekan
+    const tombolSalin = document.getElementById('salin-tautan');
+    if (tombolSalin) {
+        tombolSalin.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(tombolSalin.dataset.url);
+                tombolSalin.textContent = 'Tautan tersalin';
+            } catch (e) {
+                // Cadangan kalau browser tidak mengizinkan akses clipboard
+                window.prompt('Salin tautan ini:', tombolSalin.dataset.url);
+            }
+            // Kembalikan tulisan tombol setelah 2 detik
+            setTimeout(() => { tombolSalin.textContent = 'Salin tautan'; }, 2000);
+        });
+    }
+</script>
+{% endblock %}

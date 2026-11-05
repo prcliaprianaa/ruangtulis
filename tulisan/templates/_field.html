@@ -1,0 +1,11 @@
+{% comment %}
+Potongan template untuk menampilkan satu kolom form:
+label, isian, keterangan, dan pesan kesalahan.
+Cara pakai: include '_field.html' with field=form.judul
+{% endcomment %}
+<div class="field">
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.help_text %}<small>{{ field.help_text|safe }}</small>{% endif %}
+    {{ field.errors }}
+</div>

@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}Moderasi | RuangTulis{% endblock %}
+
+{% block content %}
+<div class="kepala-halaman">
+    <h1>Moderasi</h1>
+    <p class="redup">Tinjau tulisan sebelum tampil ke publik. Antrean diurutkan dari pengajuan terlama.</p>
+</div>
+
+{# Tab: nilai ?tab= di URL menentukan isi halaman (lihat view antrean) #}
+<nav class="tabs">
+    <a href="?tab=menunggu" class="{% if tab == 'menunggu' %}aktif{% endif %}">Menunggu tinjauan ({{ jumlah_menunggu }})</a>
+    <a href="?tab=terbit" class="{% if tab == 'terbit' %}aktif{% endif %}">Sudah terbit</a>
+    <a href="?tab=riwayat" class="{% if tab == 'riwayat' %}aktif{% endif %}">Riwayat keputusan</a>
+</nav>
+
+{% if tab == 'riwayat' %}
+    {# ---------- TAB RIWAYAT KEPUTUSAN ---------- #}
+    {% if riwayat %}
+    <div class="kotak">
+        <table class="tabel">
+            <thead><tr><th>Waktu</th><th>Tulisan</th><th>Keputusan</th><th>Moderator</th><th>Catatan</th></tr></thead>
+            <tbody>
+            {% for r in riwayat %}
+                <tr>
+                    <td data-label="Waktu">{{ r.dibuat|date:"j M Y, H.i" }}</td>
+                    <td data-label="Tulisan" class="judul">{{ r.tulisan.judul }}</td>
+                    <td data-label="Keputusan"><span class="status status-{{ r.keputusan }}">{{ r.get_keputusan_display }}</span></td>
+                    <td data-label="Moderator">{{ r.moderator }}</td>
+                    {# default:"-": tampilkan tanda strip kalau catatan kosong #}
+                    <td data-label="Catatan">{{ r.catatan|default:"-"|truncatewords:20 }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="kosong"><p>Belum ada keputusan moderasi.</p></div>
+    {% endif %}
+
+{% else %}
+    {# ---------- FILTER (untuk tab menunggu dan terbit) ---------- #}
+    {# method="get": isian filter dikirim lewat URL, misal ?tab=menunggu&kategori=esai&cari=pasar #}
+    <form method="get" class="filter">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <select name="kategori" aria-label="Kategori">
+            <option value="">Semua kategori</option>
+            {% for k in daftar_kategori %}
+                <option value="{{ k.slug }}" {% if k.slug == kategori_aktif %}selected{% endif %}>{{ k.nama }}</option>
+            {% endfor %}
+        </select>
+        <input type="search" name="cari" value="{{ cari }}" placeholder="Cari judul atau penulis">
+        <button type="submit" class="btn btn-outline">Terapkan</button>
+    </form>
+
+    {% if daftar %}
+    <div class="kotak">
+        <table class="tabel">
+            <thead>
+                <tr>
+                    <th>Judul</th><th>Penulis</th><th>Kategori</th>
+                    {% if tab == 'terbit' %}<th>Terbit</th>{% else %}<th>Diajukan</th><th>Pengajuan</th>{% endif %}
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for t in daftar %}
+                <tr>
+                    <td data-label="Judul" class="judul">{{ t.judul }}</td>
+                    <td data-label="Penulis">{{ t.penulis }}</td>
+                    <td data-label="Kategori">{{ t.kategori }}</td>
+                    {% if tab == 'terbit' %}
+                        <td data-label="Terbit">{{ t.diterbitkan_pada|date:"j M Y" }}</td>
+                        <td data-label="Aksi">
+                            <div class="aksi">
+                                <a href="{% url 'baca' t.slug %}" class="btn btn-outline btn-sm">Baca</a>
+                                {# details: kotak yang terbuka saat tombol Tarik ditekan, berisi form alasan #}
+                                <details class="tarik">
+                                    <summary class="btn btn-bahaya btn-sm">Tarik</summary>
+                                    {# onsubmit confirm: munculkan konfirmasi sebelum form dikirim #}
+                                    <form method="post" action="{% url 'tarik' t.pk %}" onsubmit="return confirm('Tarik tulisan ini dari publik?');">
+                                        {% csrf_token %}
+                                        <label class="label" for="alasan-{{ t.pk }}">Alasan penarikan</label>
+                                        <textarea name="alasan" id="alasan-{{ t.pk }}" rows="3" required placeholder="Jelaskan aturan yang dilanggar"></textarea>
+                                        <button type="submit" class="btn btn-bahaya btn-sm">Tarik dari publik</button>
+                                    </form>
+                                </details>
+                            </div>
+                        </td>
+                    {% else %}
+                        <td data-label="Diajukan">{{ t.diajukan_pada|date:"j M Y, H.i" }}</td>
+                        {# jumlah_revisi dihitung di views.py, ditambah 1 jadi pengajuan ke-berapa #}
+                        <td data-label="Pengajuan">ke-{{ t.jumlah_revisi|add:1 }}</td>
+                        <td data-label="Aksi"><a href="{% url 'tinjau' t.pk %}" class="btn btn-sm">Tinjau</a></td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="kosong">
+            <p>{% if tab == 'terbit' %}Belum ada tulisan yang terbit.{% else %}Tidak ada tulisan yang menunggu tinjauan.{% endif %}</p>
+        </div>
+    {% endif %}
+{% endif %}
+{% endblock %}

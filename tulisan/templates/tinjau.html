@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load markdown_filter %}
+
+{% block title %}Tinjau: {{ tulisan.judul }} | RuangTulis{% endblock %}
+
+{% block content %}
+<a href="{% url 'antrean' %}" class="kembali">&larr; Kembali ke antrean</a>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="dua-kolom">
+        {# ---------- KOLOM KIRI: isi tulisan ---------- #}
+        <div>
+            <div class="info-tulisan">
+                <div class="meta">
+                    <span class="kategori">{{ tulisan.kategori }}</span>
+                    <span class="status status-diajukan">Diajukan</span>
+                    <span>Pengajuan ke-{{ pengajuan_ke }}</span>
+                </div>
+                <h1>{{ tulisan.judul }}</h1>
+                <div class="meta">
+                    <span>Oleh {{ tulisan.penulis }} ({{ tulisan.penulis.username }})</span>
+                    <span>Diajukan {{ tulisan.diajukan_pada|date:"j M Y, H.i" }}</span>
+                    <span>Pernyataan orisinalitas: {% if tulisan.pernyataan_orisinal %}disetujui{% else %}belum{% endif %}</span>
+                </div>
+            </div>
+
+            {# Isi tulisan ditampilkan persis seperti nanti dilihat pembaca #}
+            <div class="artikel-isi">{{ tulisan.isi|markdown_aman }}</div>
+
+            {# Riwayat keputusan sebelumnya, berguna kalau ini pengajuan ulang #}
+            {% if riwayat %}
+            <div class="kotak kotak-isi" style="margin-top: 32px;">
+                <h3>Riwayat moderasi</h3>
+                {% for r in riwayat %}
+                    <div class="riwayat-item">
+                        <span class="status status-{{ r.keputusan }}">{{ r.get_keputusan_display }}</span>
+                        <span class="redup kecil">{{ r.dibuat|date:"j M Y, H.i" }} oleh {{ r.moderator }}</span>
+                        {% if r.catatan %}<p>{{ r.catatan|linebreaksbr }}</p>{% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        {# ---------- KOLOM KANAN: checklist dan keputusan ---------- #}
+        <aside class="samping">
+            <div class="kotak kotak-isi checklist">
+                <h3>Checklist aturan konten</h3>
+                <p class="redup kecil" style="margin: 0 0 6px;">Centang setiap aturan yang terpenuhi.</p>
+                {# kolom_checklist: daftar kotak centang yang dibuat di KeputusanForm #}
+                {% for kolom in form.kolom_checklist %}
+                    <label class="pilihan">{{ kolom }} <span>{{ kolom.label }}</span></label>
+                {% endfor %}
+            </div>
+
+            <div class="kotak kotak-isi">
+                <h3>Keputusan</h3>
+                <div class="radio-grup">{{ form.keputusan }}</div>
+                {{ form.keputusan.errors }}
+                <p class="redup kecil">Terbitkan hanya bisa dipilih kalau semua aturan dicentang.</p>
+                {% include '_field.html' with field=form.catatan %}
+                <button type="submit" class="btn btn-penuh">Simpan keputusan</button>
+            </div>
+        </aside>
+    </div>
+</form>
+{% endblock %}
+
+{% block script %}
+<script>
+    // Pilihan "Terbitkan" hanya aktif kalau semua kotak checklist dicentang.
+    // (Server tetap memeriksa ulang di KeputusanForm.)
+    const kotakAturan = document.querySelectorAll('.checklist input[type=checkbox]');
+    const pilihanTerbit = document.querySelector('input[name=keputusan][value=terbit]');
+
+    function cekChecklist() {
+        // every(): True kalau semua kotak dicentang
+        const semuaDicentang = Array.from(kotakAturan).every((kotak) => kotak.checked);
+        pilihanTerbit.disabled = !semuaDicentang;
+        // Kalau ada centang yang dilepas, pilihan Terbitkan ikut dibatalkan
+        if (!semuaDicentang && pilihanTerbit.checked) {
+            pilihanTerbit.checked = false;
+        }
+    }
+    kotakAturan.forEach((kotak) => kotak.addEventListener('change', cekChecklist));
+    cekChecklist();
+</script>
+{% endblock %}

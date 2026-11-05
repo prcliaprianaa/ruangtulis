@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Kelola pengguna | RuangTulis{% endblock %}
+
+{% block content %}
+<div class="panel">
+    {% include '_panel_menu.html' %}
+
+    <div>
+        <div class="kepala-halaman">
+            <h1>Kelola pengguna</h1>
+            <p class="redup">Tetapkan role moderator dan nonaktifkan akun yang melanggar aturan.</p>
+        </div>
+
+        {# Pencarian dan filter role, dikirim lewat URL (method get) #}
+        <form method="get" class="filter">
+            <input type="search" name="cari" value="{{ cari }}" placeholder="Cari nama atau nama pengguna">
+            <select name="role" aria-label="Role">
+                <option value="">Semua role</option>
+                {% for kode, label in pilihan_role %}
+                    <option value="{{ kode }}" {% if kode == role_aktif %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-outline">Terapkan</button>
+        </form>
+
+        <div class="kotak">
+            <table class="tabel">
+                <thead><tr><th>Nama</th><th>Nama pengguna</th><th>Bergabung</th><th>Role dan status</th></tr></thead>
+                <tbody>
+                {% for p in daftar %}
+                    <tr>
+                        <td data-label="Nama" class="judul">{{ p.first_name|default:"-" }}</td>
+                        <td data-label="Nama pengguna">{{ p.username }}</td>
+                        <td data-label="Bergabung">{{ p.date_joined|date:"j M Y" }}</td>
+                        <td data-label="Role dan status">
+                            {% if p.role == 'admin' %}
+                                <span class="badge-role">Admin</span> <span class="redup kecil">tidak dapat diubah</span>
+                            {% else %}
+                                {# Satu form kecil per pengguna, dikirim ke view ubah_pengguna #}
+                                {# escapejs: mengamankan nama pengguna supaya tidak merusak kode JavaScript confirm #}
+                                <form method="post" action="{% url 'ubah_pengguna' p.pk %}" class="form-baris"
+                                      onsubmit="return confirm('Simpan perubahan untuk {{ p.username|escapejs }}?');">
+                                    {% csrf_token %}
+                                    <select name="role" aria-label="Role">
+                                        <option value="penulis" {% if p.role == 'penulis' %}selected{% endif %}>Penulis</option>
+                                        <option value="moderator" {% if p.role == 'moderator' %}selected{% endif %}>Moderator</option>
+                                    </select>
+                                    {# Nilai "true"/"false" otomatis dibaca Django sebagai True/False untuk kolom is_active #}
+                                    <select name="is_active" aria-label="Status akun">
+                                        <option value="true" {% if p.is_active %}selected{% endif %}>Aktif</option>
+                                        <option value="false" {% if not p.is_active %}selected{% endif %}>Nonaktif</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm">Simpan</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    {# empty: tampil kalau daftar kosong, misal hasil pencarian tidak ditemukan #}
+                    <tr><td colspan="4" class="redup">Tidak ada pengguna yang cocok.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

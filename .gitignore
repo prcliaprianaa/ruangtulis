@@ -1,0 +1,22 @@
+# ============================================================
+# .GITIGNORE: file dan folder yang TIDAK diunggah ke GitHub
+# ============================================================
+
+# Virtual environment: besar dan bisa dibuat ulang dari requirements.txt
+venv/
+
+# Database lokal: berisi akun dan data percobaan di laptop
+db.sqlite3
+
+# File cache Python yang dibuat otomatis saat program jalan
+__pycache__/
+*.pyc
+
+# File rahasia (dipakai nanti saat deploy)
+.env
+
+# Hasil kumpulan file statis (dibuat otomatis saat deploy)
+staticfiles/
+
+# File pengaturan VS Code pribadi
+.vscode/

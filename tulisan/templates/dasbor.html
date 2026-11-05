@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Dasbor | RuangTulis{% endblock %}
+
+{% block content %}
+<div class="kepala-baris">
+    <div>
+        <h1>Tulisanku</h1>
+        <p class="redup" style="margin: 0;">Pantau status setiap tulisan dan catatan dari moderator.</p>
+    </div>
+    <a href="{% url 'tulis_baru' %}" class="btn">Tulis baru</a>
+</div>
+
+{# Ringkasan jumlah tulisan per status, datanya dari "ringkasan" di views.py #}
+<div class="ringkasan">
+    {% for label, jumlah in ringkasan %}
+        <div><span>{{ label }}</span><strong>{{ jumlah }}</strong></div>
+    {% endfor %}
+</div>
+
+{% if daftar %}
+<div class="kotak">
+    <table class="tabel">
+        <thead>
+            <tr><th>Judul</th><th>Kategori</th><th>Status</th><th>Diperbarui</th><th>Aksi</th></tr>
+        </thead>
+        <tbody>
+        {% for t in daftar %}
+            <tr>
+                {# data-label: judul kolom yang muncul di tampilan ponsel #}
+                <td data-label="Judul" class="judul">{{ t.judul }}</td>
+                <td data-label="Kategori">{{ t.kategori }}</td>
+                {# Kelas status-xxx memberi warna berbeda untuk setiap status (lihat style.css bagian 7) #}
+                <td data-label="Status"><span class="status status-{{ t.status }}">{{ t.get_status_display }}</span></td>
+                <td data-label="Diperbarui">{{ t.diperbarui|date:"j M Y, H.i" }}</td>
+                <td data-label="Aksi">
+                    <div class="aksi">
+                        {# Tombol aksi menyesuaikan status tulisan #}
+                        {% if t.status == 'draf' %}
+                            <a href="{% url 'edit_tulisan' t.pk %}" class="btn btn-sm">Edit</a>
+                        {% elif t.status == 'perlu_revisi' %}
+                            <a href="{% url 'edit_tulisan' t.pk %}" class="btn btn-sm">Revisi</a>
+                        {% elif t.status == 'diajukan' %}
+                            <span class="redup kecil">Menunggu tinjauan</span>
+                        {% endif %}
+                        <a href="{% url 'baca' t.slug %}" class="btn btn-outline btn-sm">{% if t.status == 'terbit' %}Baca{% else %}Pratinjau{% endif %}</a>
+                    </div>
+                </td>
+            </tr>
+
+            {# Catatan moderator terakhir, untuk tulisan yang sudah pernah diputuskan #}
+            {% if t.status != 'draf' and t.status != 'diajukan' %}
+                {% with c=t.catatan_terakhir %}
+                    {% if c and c.catatan %}
+                    <tr class="baris-catatan">
+                        <td colspan="5">
+                            <div class="catatan">
+                                <strong>Catatan moderator, {{ c.dibuat|date:"j M Y" }}</strong>
+                                {{ c.catatan|linebreaksbr }}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                {% endwith %}
+            {% endif %}
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+    {# Tampilan kalau penulis belum punya tulisan #}
+    <div class="kosong">
+        <p>Belum ada tulisan. Mulai dari draf pertamamu, simpan kapan saja, lalu ajukan kalau sudah siap.</p>
+        <a href="{% url 'tulis_baru' %}" class="btn">Tulis baru</a>
+    </div>
+{% endif %}
+{% endblock %}

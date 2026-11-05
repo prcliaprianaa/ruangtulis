@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Kelola kategori | RuangTulis{% endblock %}
+
+{% block content %}
+<div class="panel">
+    {% include '_panel_menu.html' %}
+
+    <div>
+        <div class="kepala-halaman">
+            <h1>Kelola kategori</h1>
+            <p class="redup">Kategori membedakan jenis tulisan dan dipakai pembaca untuk menyaring tulisan di beranda.</p>
+        </div>
+
+        <div class="grid-form">
+            {# Form tambah atau ubah. Kalau URL berisi ?ubah=<id>, form terisi data kategori itu #}
+            <div class="kotak kotak-isi">
+                <h3>{% if kategori_diubah %}Ubah kategori{% else %}Tambah kategori{% endif %}</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    {% include '_field.html' with field=form.nama %}
+                    {% include '_field.html' with field=form.deskripsi %}
+                    <button type="submit" class="btn btn-penuh">Simpan kategori</button>
+                    {% if kategori_diubah %}
+                        <a href="{% url 'panel_kategori' %}" class="btn btn-outline btn-penuh" style="margin-top: 8px;">Batal</a>
+                    {% endif %}
+                </form>
+            </div>
+
+            <div class="kotak">
+                <table class="tabel">
+                    <thead><tr><th>Nama</th><th>Slug</th><th>Jumlah tulisan</th><th>Aksi</th></tr></thead>
+                    <tbody>
+                    {% for k in daftar %}
+                        <tr>
+                            <td data-label="Nama" class="judul">{{ k.nama }}</td>
+                            <td data-label="Slug">{{ k.slug }}</td>
+                            <td data-label="Jumlah tulisan">{{ k.jumlah_tulisan }}</td>
+                            <td data-label="Aksi">
+                                <div class="aksi">
+                                    <a href="?ubah={{ k.pk }}" class="btn btn-outline btn-sm">Ubah</a>
+                                    <form method="post" action="{% url 'hapus_kategori' k.pk %}"
+                                          onsubmit="return confirm('Hapus kategori {{ k.nama|escapejs }}?');">
+                                        {% csrf_token %}
+                                        {# Tombol hapus dimatikan kalau kategori masih dipakai tulisan #}
+                                        <button type="submit" class="btn btn-bahaya btn-sm"
+                                                {% if k.jumlah_tulisan %}disabled title="Masih dipakai tulisan"{% endif %}>Hapus</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

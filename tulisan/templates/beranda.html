@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load markdown_filter %}
+{# load markdown_filter: memuat filter teks_polos dan waktu_baca dari folder templatetags #}
+
+{% block title %}RuangTulis{% endblock %}
+
+{% block content %}
+<div class="kepala-halaman">
+    <h1>Tulisan terbaru</h1>
+    <p class="redup">Semua tulisan di sini sudah ditinjau moderator sebelum terbit.</p>
+</div>
+
+{# Filter kategori. Kategori yang sedang dipilih diberi kelas "aktif" #}
+<nav class="chips" aria-label="Filter kategori">
+    <a href="{% url 'beranda' %}" class="chip {% if not kategori_aktif %}aktif{% endif %}">Semua</a>
+    {% for k in daftar_kategori %}
+        <a href="?kategori={{ k.slug }}" class="chip {% if k.slug == kategori_aktif %}aktif{% endif %}">{{ k.nama }}</a>
+    {% endfor %}
+</nav>
+
+{% if halaman.object_list %}
+    {# Daftar tulisan pada halaman ini (maksimal 10, diatur di views.py) #}
+    <ul class="daftar-tulisan">
+        {% for t in halaman %}
+        <li>
+            <a href="?kategori={{ t.kategori.slug }}" class="kategori">{{ t.kategori }}</a>
+            <h2><a href="{% url 'baca' t.slug %}">{{ t.judul }}</a></h2>
+            {# teks_polos: membuang simbol Markdown, truncatewords: memotong jadi 35 kata #}
+            <p class="cuplikan">{{ t.isi|teks_polos|truncatewords:35 }}</p>
+            <div class="meta">
+                <span>{{ t.penulis }}, {{ t.diterbitkan_pada|date:"j M Y" }}</span>
+                <span>{{ t.isi|waktu_baca }} menit baca</span>
+                <span>{{ t.jumlah_suka }} suka</span>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+
+    {# Tombol halaman sebelumnya dan berikutnya, hanya muncul kalau lebih dari 1 halaman #}
+    {% if halaman.has_other_pages %}
+    <nav class="paginasi">
+        {% if halaman.has_previous %}
+            <a class="btn btn-outline btn-sm" href="?{% if kategori_aktif %}kategori={{ kategori_aktif }}&{% endif %}halaman={{ halaman.previous_page_number }}">Sebelumnya</a>
+        {% endif %}
+        <span class="redup">Halaman {{ halaman.number }} dari {{ halaman.paginator.num_pages }}</span>
+        {% if halaman.has_next %}
+            <a class="btn btn-outline btn-sm" href="?{% if kategori_aktif %}kategori={{ kategori_aktif }}&{% endif %}halaman={{ halaman.next_page_number }}">Berikutnya</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+{% else %}
+    {# Tampilan kalau belum ada tulisan #}
+    <div class="kosong">
+        <p>Belum ada tulisan yang terbit{% if kategori_aktif %} di kategori ini{% endif %}.</p>
+        {% if not user.is_authenticated %}
+            <a href="{% url 'registrasi' %}" class="btn">Daftar dan mulai menulis</a>
+        {% elif user.role == 'penulis' %}
+            <a href="{% url 'tulis_baru' %}" class="btn">Tulis sesuatu</a>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

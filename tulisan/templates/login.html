@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Masuk | RuangTulis{% endblock %}
+
+{% block content %}
+<div class="kartu-form">
+    <h1>Masuk</h1>
+    <p class="redup">Masuk untuk menulis, meninjau, atau mengelola RuangTulis.</p>
+
+    {# Pesan kesalahan login, misal "Nama pengguna atau sandi salah." #}
+    {% if form.non_field_errors %}
+        <div class="pesan pesan-error">{{ form.non_field_errors.0 }}</div>
+    {% endif %}
+
+    <form method="post">
+        {# csrf_token: kode keamanan wajib di setiap form POST, mencegah kiriman palsu dari situs lain #}
+        {% csrf_token %}
+        {% include '_field.html' with field=form.username %}
+        {% include '_field.html' with field=form.password %}
+        {# next: halaman tujuan setelah login, kalau sebelumnya diarahkan dari halaman lain #}
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="btn btn-penuh">Masuk</button>
+    </form>
+
+    <p class="bawah">Belum punya akun? <a href="{% url 'registrasi' %}">Daftar</a></p>
+</div>
+{% endblock %}

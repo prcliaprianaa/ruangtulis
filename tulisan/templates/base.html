@@ -1,0 +1,85 @@
+{% load static %}
+{% comment %}
+============================================================
+BASE.HTML: kerangka yang dipakai semua halaman.
+Halaman lain cukup menulis extends 'base.html'
+lalu mengisi bagian block content.
+============================================================
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    {# viewport: supaya tampilan menyesuaikan lebar layar ponsel #}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RuangTulis{% endblock %}</title>
+
+    {# Huruf dari Google Fonts: Plus Jakarta Sans untuk tampilan, Literata untuk bacaan #}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    {# {% static %}: mengambil file dari folder tulisan/static/ #}
+    <link rel="stylesheet" href="{% static 'tulisan/style.css' %}">
+</head>
+<body>
+    {# nama_url: nama URL halaman yang sedang dibuka, untuk menandai menu yang aktif #}
+    {% with nama_url=request.resolver_match.url_name %}
+    <header class="navbar">
+        <div class="wadah navbar-isi">
+            <a href="{% url 'beranda' %}" class="logo">RuangTulis</a>
+
+            {# Tombol garis tiga untuk ponsel. Kotak centang tersembunyi ini yang membuka dan menutup menu #}
+            <input type="checkbox" id="menu-toggle" class="menu-toggle">
+            <label for="menu-toggle" class="menu-tombol" aria-label="Buka menu"><span></span></label>
+
+            <nav class="menu">
+                <a href="{% url 'beranda' %}" class="{% if nama_url == 'beranda' %}aktif{% endif %}">Beranda</a>
+
+                {% if user.is_authenticated %}
+                    {# Menu berbeda untuk setiap role #}
+                    {% if user.role == 'penulis' %}
+                        <a href="{% url 'dasbor' %}" class="{% if nama_url == 'dasbor' or nama_url == 'tulis_baru' or nama_url == 'edit_tulisan' %}aktif{% endif %}">Dasbor</a>
+                    {% elif user.role == 'moderator' %}
+                        <a href="{% url 'antrean' %}" class="{% if nama_url == 'antrean' or nama_url == 'tinjau' %}aktif{% endif %}">Moderasi</a>
+                    {% elif user.role == 'admin' %}
+                        <a href="{% url 'panel_pengguna' %}" class="{% if nama_url == 'panel_pengguna' or nama_url == 'panel_kategori' %}aktif{% endif %}">Panel Admin</a>
+                    {% endif %}
+
+                    {# Nama pengguna dan label role, didorong ke kanan #}
+                    <span class="pengguna dorong">
+                        <span>{{ user.first_name|default:user.username }}</span>
+                        <span class="badge-role">{{ user.get_role_display }}</span>
+                    </span>
+                    {# Logout wajib lewat form POST (aturan Django versi baru) #}
+                    <form method="post" action="{% url 'logout' %}" class="form-keluar">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline btn-sm">Keluar</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-outline btn-sm dorong">Masuk</a>
+                    <a href="{% url 'registrasi' %}" class="btn btn-sm">Daftar</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+    {% endwith %}
+
+    <main class="wadah konten">
+        {# Pesan singkat dari views.py, misal "Tulisan berhasil diajukan" #}
+        {% for pesan in messages %}
+            <div class="pesan pesan-{{ pesan.tags }}">{{ pesan }}</div>
+        {% endfor %}
+
+        {# Isi utama setiap halaman masuk ke sini #}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="wadah">RuangTulis. Setiap tulisan ditinjau moderator sebelum terbit.</div>
+    </footer>
+
+    {# Tempat JavaScript khusus halaman tertentu #}
+    {% block script %}{% endblock %}
+</body>
+</html>

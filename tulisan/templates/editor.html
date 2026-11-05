@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if tulisan.pk %}Edit tulisan{% else %}Tulis baru{% endif %} | RuangTulis{% endblock %}
+
+{% block content %}
+<a href="{% url 'dasbor' %}" class="kembali">&larr; Kembali ke dasbor</a>
+
+<div class="kepala-baris">
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        {# tulisan.pk kosong berarti tulisan baru yang belum pernah disimpan #}
+        <h1 style="margin: 0;">{% if tulisan.pk %}Edit tulisan{% else %}Tulis baru{% endif %}</h1>
+        {% if tulisan.pk %}<span class="status status-{{ tulisan.status }}">{{ tulisan.get_status_display }}</span>{% endif %}
+    </div>
+    {% if tulisan.pk %}
+        {# Pratinjau menampilkan versi terakhir yang sudah disimpan, dibuka di tab baru #}
+        <a href="{% url 'baca' tulisan.slug %}" class="btn btn-outline btn-sm" target="_blank">Lihat pratinjau</a>
+    {% endif %}
+</div>
+
+{# Catatan moderator, hanya muncul saat tulisan diminta revisi #}
+{% if tulisan.status == 'perlu_revisi' %}
+    {% with c=tulisan.catatan_terakhir %}
+        {% if c %}
+            <div class="catatan" style="margin-bottom: 20px;"><strong>Catatan moderator</strong>{{ c.catatan|linebreaksbr }}</div>
+        {% endif %}
+    {% endwith %}
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <div class="dua-kolom">
+        {# ---------- KOLOM KIRI: isian tulisan ---------- #}
+        <div>
+            <div class="baris-dua">
+                {% include '_field.html' with field=form.judul %}
+                {% include '_field.html' with field=form.kategori %}
+            </div>
+
+            <div class="field">
+                <label for="isi-markdown">{{ form.isi.label }}</label>
+                <div class="editor">
+                    {# Tombol bantu: menyisipkan simbol Markdown ke dalam isian #}
+                    <div class="editor-atas">
+                        <div class="alat">
+                            <button type="button" data-awal="**" data-akhir="**" title="Tebal"><b>B</b></button>
+                            <button type="button" data-awal="*" data-akhir="*" title="Miring"><i>I</i></button>
+                            <button type="button" data-awal="## " data-akhir="" title="Subjudul">Subjudul</button>
+                            <button type="button" data-awal="> " data-akhir="" title="Kutipan">Kutipan</button>
+                            <button type="button" data-awal="- " data-akhir="" title="Daftar butir">Daftar</button>
+                        </div>
+                    </div>
+                    {{ form.isi }}
+                </div>
+                {{ form.isi.errors }}
+            </div>
+
+            {# Pernyataan orisinalitas, wajib dicentang sebelum mengajukan #}
+            <label class="pilihan">{{ form.pernyataan_orisinal }} <span>{{ form.pernyataan_orisinal.label }}</span></label>
+            {{ form.pernyataan_orisinal.errors }}
+
+            {# Dua tombol dengan name="aksi". Nilainya dibaca views.py untuk menentukan simpan draf atau ajukan #}
+            <div class="tombol-baris">
+                <button type="submit" name="aksi" value="draf" class="btn btn-outline">Simpan draf</button>
+                <button type="submit" name="aksi" value="ajukan" class="btn" id="tombol-ajukan">Ajukan ke moderator</button>
+            </div>
+        </div>
+
+        {# ---------- KOLOM KANAN: panduan ---------- #}
+        <aside class="samping">
+            <div class="kotak kotak-isi">
+                <h3>Aturan konten</h3>
+                <p class="redup kecil" style="margin: 0;">Moderator memeriksa tulisan dengan daftar ini.</p>
+                <ol>
+                    {% for aturan in aturan_list %}<li>{{ aturan.nama }}</li>{% endfor %}
+                </ol>
+            </div>
+            <div class="kotak kotak-isi">
+                <h3>Panduan Markdown</h3>
+                <p class="panduan-md">## Subjudul<br>**tebal** dan *miring*<br>&gt; kutipan<br>- daftar butir<br>[teks](https://alamat)</p>
+                <p class="redup kecil" style="margin: 8px 0 0;">Enter sekali untuk baris baru, dua kali untuk paragraf baru.</p>
+            </div>
+        </aside>
+    </div>
+</form>
+{% endblock %}
+
+{% block script %}
+<script>
+    // ---- Tombol bantu Markdown ----
+    const area = document.getElementById('isi-markdown');
+    document.querySelectorAll('.alat button').forEach((tombol) => {
+        tombol.addEventListener('click', () => {
+            const awal = tombol.dataset.awal;
+            const akhir = tombol.dataset.akhir;
+            const mulai = area.selectionStart;    // posisi awal teks yang dipilih
+            const selesai = area.selectionEnd;    // posisi akhir teks yang dipilih
+
+            if (akhir) {
+                // Simbol pembungkus (tebal, miring): dipasang di kiri dan kanan teks yang dipilih
+                const terpilih = area.value.slice(mulai, selesai) || 'teks';
+                area.setRangeText(awal + terpilih + akhir, mulai, selesai, 'end');
+            } else {
+                // Simbol awal baris (subjudul, kutipan, daftar): dipasang di awal baris
+                const awalBaris = area.value.lastIndexOf('\n', mulai - 1) + 1;
+                area.setRangeText(awal, awalBaris, awalBaris, 'end');
+            }
+            area.focus();
+        });
+    });
+
+    // ---- Tombol Ajukan hanya aktif kalau pernyataan orisinalitas dicentang ----
+    // (Server tetap memeriksa ulang di forms.py, ini hanya supaya lebih jelas bagi penulis.)
+    const centang = document.getElementById('id_pernyataan_orisinal');
+    const tombolAjukan = document.getElementById('tombol-ajukan');
+    function perbaruiTombol() {
+        tombolAjukan.disabled = !centang.checked;
+    }
+    centang.addEventListener('change', perbaruiTombol);
+    perbaruiTombol();
+</script>
+{% endblock %}

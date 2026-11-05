@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Daftar | RuangTulis{% endblock %}
+
+{% block content %}
+<div class="kartu-form">
+    <h1>Daftar akun</h1>
+    <p class="redup">Akun baru otomatis berperan sebagai penulis.</p>
+
+    <form method="post">
+        {% csrf_token %}
+        {# Kolom-kolom ini berasal dari RegistrasiForm di forms.py #}
+        {% include '_field.html' with field=form.first_name %}
+        {% include '_field.html' with field=form.username %}
+        {% include '_field.html' with field=form.password1 %}
+        {% include '_field.html' with field=form.password2 %}
+        <button type="submit" class="btn btn-penuh">Daftar</button>
+    </form>
+
+    <p class="bawah">Sudah punya akun? <a href="{% url 'login' %}">Masuk</a></p>
+</div>
+{% endblock %}
